@@ -1,4 +1,7 @@
 import torch
+import torchmetrics
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+accuracy_fn = torchmetrics.Accuracy(task="multiclass", num_classes=3).to(device)
 
 def train_step(model, dataloader, loss_fn, optimizer, device):
     model.train()
@@ -56,7 +59,7 @@ def test_step(model, dataloader, loss_fn, device):
     test_acc = test_acc / len(dataloader)
     return test_loss, test_acc
 
-def train(model, optimizer, loss_fn, epochs, device):
+def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, device):
     # Create empty results dictionary
     results = {"train_loss": [],
       "train_acc": [],

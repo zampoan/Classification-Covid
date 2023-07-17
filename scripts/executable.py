@@ -49,4 +49,4 @@ end_time = timer()
 print(f"Total training time: {end_time-start_time:.2f} seconds")
 
 # Save Model
-save_model.save_model(model_0, target_dir='models', model_name='CovidAid.pth')
+save_model.save_model(model_0, target_dir='models', model_name='CovidAid.pt')

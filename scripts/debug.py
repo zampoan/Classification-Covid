@@ -1,14 +1,4 @@
-number = [3, 2, 8, 5, 10, 6]
-largest_number = max(number,number[0])
+import torch.nn as nn
 
-
-
-
-
-
-
-
-
-
-
-
+gru_layer = nn.GRU(49, 512)
+gru_layer

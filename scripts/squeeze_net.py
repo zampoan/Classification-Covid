@@ -1,8 +1,5 @@
 
-""""
-Original paper here: https://arxiv.org/pdf/1602.07360.pdf
-"""
-
+import torch
 import torch.nn as nn
 
 class FireModule(nn.Module):
@@ -29,16 +26,16 @@ class FireModule(nn.Module):
 
     def forward(self, x):
         x = self.squeeze(x)
-        y = self.expand_e1x1(x)
-        z = self.expand_e3x3(x)
-        return torch.cat((y, z),dim=0)
+        y = self.expand_e1x1(x) # 64
+        z = self.expand_e3x3(x) # 64
+        return torch.cat((y, z),dim=1)
 
 
 class SqueezeNet(nn.Module):
-    def __init__(self, num_classes=3):
+    def __init__(self):
         super().__init__()
-        self.conv_1 = nn.Conv2d(in_channels=3, out_channels=96, kernel_size=7, stride=2, padding=1)
-        self.conv_10 = nn.Conv2d(in_channels=512, out_channels=3, kernel_size=1, stride=1, padding=1)
+        self.conv_1 = nn.Conv2d(in_channels=3, out_channels=96, kernel_size=7, stride=2, padding=2)
+        self.conv_10 = nn.Conv2d(in_channels=512, out_channels=3, kernel_size=1, stride=1, padding=2)
         self.relu = nn.ReLU()
         self.maxpool_1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
         self.maxpool_4 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
@@ -51,15 +48,16 @@ class SqueezeNet(nn.Module):
         self.fireModule_7 = FireModule(384, 48, 192, 192)   
         self.fireModule_8 = FireModule(384, 64, 256, 256)
         self.fireModule_9 = FireModule(512, 64, 256, 256)
-        self.avgpool_10 = nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
+        self.avgpool_10 = nn.AvgPool2d(kernel_size=17, stride=1, padding=0)
+        # self.softmax = nn.Softmax()
 
 
 
     def forward(self, x):
-        x = self.conv_1(x) # [96, 111, 111]
+        x = self.conv_1(x) # [32, 96, 111, 111]
         x = self.relu(x)
-        x = self.maxpool_1(x) # [96, 55, 55]
-        x = self.fireModule_2(x) # [128,55,55]
+        x = self.maxpool_1(x) # [32, 96, 55, 55]
+        x = self.fireModule_2(x) # [32, 128,55,55]
         x = self.fireModule_3(x) # [128,55,55]
         x = self.fireModule_4(x) # [256,55,55]
         x = self.maxpool_4(x) # [256,27,27]
@@ -72,7 +70,8 @@ class SqueezeNet(nn.Module):
         x = self.conv_10(x)
         x = self.relu(x)
         x = self.avgpool_10(x) # [3,1,1] 
-        x = torch.squeeze(x, dim=1)
-        x = x.reshape(1,3) # [1,3]
+        # x = self.softmax(x)
+        x = torch.squeeze(x, dim=3)
+        x= torch.squeeze(x, dim=2)
 
         return x

@@ -64,9 +64,9 @@ class GRUCNN(nn.Module):
             nn.ReLU(),
             nn.BatchNorm1d(3),
             nn.Dropout(p=0.5),
+            nn.Softmax()
         )
         
-        self.gru = nn.GRUCell(512*7*7, 64)
 
     def forward(self, x):
         x = self.conv_block_1(x)

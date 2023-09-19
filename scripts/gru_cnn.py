@@ -8,13 +8,14 @@ import torch
 import torch.nn as nn
 
 class GRUCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, hidden_size=64, num_classes=3):
         super().__init__()
         self.conv_block_1 = nn.Sequential(
             nn.Conv2d(3, 3, 1, 1),
             nn.ReLU(),
             nn.Conv2d(3, 64, 1, 1),
             nn.ReLU(),
+            nn.BatchNorm2d(64),
             nn.MaxPool2d(2)
         )
         self.conv_block_2 = nn.Sequential(
@@ -22,6 +23,7 @@ class GRUCNN(nn.Module):
             nn.ReLU(),
             nn.Conv2d(128, 128, 1,1),
             nn.ReLU(),
+            nn.BatchNorm2d(128),
             nn.MaxPool2d(2)
         )
         self.conv_block_3 = nn.Sequential(
@@ -29,6 +31,7 @@ class GRUCNN(nn.Module):
             nn.ReLU(),
             nn.Conv2d(256, 256, 1,1),
             nn.ReLU(),
+            nn.BatchNorm2d(256),
             nn.MaxPool2d(2)
         )
 
@@ -37,6 +40,7 @@ class GRUCNN(nn.Module):
             nn.ReLU(),
             nn.Conv2d(512, 512, 1,1),
             nn.ReLU(),
+            nn.BatchNorm2d(512),
             nn.MaxPool2d(2)
         )
 
@@ -45,17 +49,24 @@ class GRUCNN(nn.Module):
             nn.ReLU(),
             nn.Conv2d(512, 512, 1,1),
             nn.ReLU(),
+            nn.BatchNorm2d(512),
             nn.MaxPool2d(2)
         )
-        self.dense = nn.Sequential(
-            nn.Linear(512*7*7*BATCH_SIZE, 64),
-            nn.ReLU(),
-            nn.Linear(64, 3),
-            nn.Softmax()
+        self.gru_block = nn.Sequential(
+          nn.GRUCell(512*7*7, hidden_size),
+          nn.ReLU(),
+          nn.BatchNorm1d(64),
+          nn.Dropout(p=0.5)
         )
-        # self.gru = nn.GRU(input_size=3584, hidden_size=512, num_layers=1, batch_first=True)
-        self.gru = nn.GRU(input_size=1, hidden_size=1)
-        self.relu = nn.ReLU()
+
+        self.fc= nn.Sequential(
+            nn.Linear(64, num_classes), # 512*7*7*BATCH_SIZE
+            nn.ReLU(),
+            nn.BatchNorm1d(3),
+            nn.Dropout(p=0.5),
+        )
+        
+        self.gru = nn.GRUCell(512*7*7, 64)
 
     def forward(self, x):
         x = self.conv_block_1(x)
@@ -64,13 +75,8 @@ class GRUCNN(nn.Module):
         x = self.conv_block_4(x)
         x = self.conv_block_5(x) # torch.Size([32, 512, 7, 7])
         
-        # reshape the tensor 
-        x = x.view(1, -1, 1) # [1, 512*7*7*BATCH_SIZE, 1]
-        x, _ = self.gru(x) # _ represents hidden state
-        x = self.relu(x)
-
-        x = torch.flatten(x)
-        x = self.dense(x)
-        x = torch.unsqueeze(x,dim=0)
+        x = x.view(x.size(0), -1) # [32, 512 * 7 * 7]
+        x = self.gru_block(x)
+        x = self.fc(x)
         
         return x

@@ -3,6 +3,7 @@ Paper: https://www.sciencedirect.com/science/article/pii/S1568494622007050#fig3
 Efficient_CNN: https://www.hindawi.com/journals/complexity/2021/6621607/fig4/
 
 """
+import torch
 import torch.nn as nn
 
 class EFFICIENT_CNN(nn.Module):
@@ -50,6 +51,7 @@ class EFFICIENT_CNN(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.2)
             )
+        
         self.dense_1 = nn.Sequential(
             nn.Linear(1024, 512),
             nn.ReLU()
@@ -60,7 +62,7 @@ class EFFICIENT_CNN(nn.Module):
         )
         self.dense_3 = nn.Sequential(
             nn.Linear(256, 3),
-            nn.Sigmoid()
+            nn.Softmax()
         )
 
     def forward(self, x):
@@ -70,10 +72,9 @@ class EFFICIENT_CNN(nn.Module):
         x = self.block_4(x)
         x = self.block_5(x)
         x = self.block_6(x)
-        x = torch.flatten(x)
+        x = x.view(x.size(0), -1)
 
         x = self.dense_1(x)
         x = self.dense_2(x)
         x = self.dense_3(x)
-        x = torch.unsqueeze(x, dim=0)
         return x

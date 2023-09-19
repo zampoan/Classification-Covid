@@ -101,6 +101,7 @@ class CovidAidModel(nn.Module):
         self.maxpool_2 = nn.MaxPool2d(kernel_size=1, stride=1)
         self.flatten = nn.Flatten()
         self.linear = nn.Linear(363, 3)
+        self.softmax = nn.Softmax()
 
     def forward(self, x):
         x = self.covid_aid_1(x)
@@ -121,5 +122,6 @@ class CovidAidModel(nn.Module):
         x = self.covid_aid_6(x)
         x = self.covid_aid_7(x)
         x = self.flatten(x)
-        x = self.linear(x)
+        x = self.linear(x) # [32,3]
+        x = self.softmax(x)
         return x

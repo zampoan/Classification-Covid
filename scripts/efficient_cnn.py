@@ -1,5 +1,4 @@
 """
-Paper: https://www.sciencedirect.com/science/article/pii/S1568494622007050#fig3
 Efficient_CNN: https://www.hindawi.com/journals/complexity/2021/6621607/fig4/
 
 """

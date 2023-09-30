@@ -64,9 +64,8 @@ class GRUCNN(nn.Module):
             nn.ReLU(),
             nn.BatchNorm1d(3),
             nn.Dropout(p=0.5),
-            nn.Softmax()
+            # nn.Softmax()
         )
-        
 
     def forward(self, x):
         x = self.conv_block_1(x)
@@ -74,9 +73,9 @@ class GRUCNN(nn.Module):
         x = self.conv_block_3(x)
         x = self.conv_block_4(x)
         x = self.conv_block_5(x) # torch.Size([32, 512, 7, 7])
-        
+
         x = x.view(x.size(0), -1) # [32, 512 * 7 * 7]
         x = self.gru_block(x)
         x = self.fc(x)
-        
+
         return x

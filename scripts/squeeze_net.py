@@ -78,5 +78,5 @@ class SqueezeNet(nn.Module):
         x = self.avgpool_10(x) # [3,1,1] 
         x = self.flatten(x)
         x = self.linear(x)
-        x = self.softmax(x)
+        # x = self.softmax(x)
         return x

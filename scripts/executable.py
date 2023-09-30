@@ -1,5 +1,4 @@
 
-
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,32 +7,36 @@ import torch.nn as nn
 import torch
 import torchvision.transforms as transforms
 import data_setup, save_model, training
-import covid_aid, squeeze_net, efficient_cnn, gru_cnn, codnnet
+import covid_aid, squeeze_net, efficient_cnn, gru_cnn, codnnet, bobnet
+import torchmetrics
+
+# Setup device
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+accuracy_fn = torchmetrics.Accuracy(task="multiclass", num_classes=3).to(device)
 
 # HYPERPARAMETERS
 SEED=42
 BATCH_SIZE=32
 NUM_WORKERS=4 #os.cpu_count()
 LEARNING_RATE={ # Great results at 0.01
-                "BobNet": 0.001,
+                "BobNet": 0.01,
                 "CodnNet": 0.01, 
                 "GRUCNN": 0.01,   
                "EfficientCNN": 0.01,
                "CovidAid": 0.01, 
                "SqueezeNet": 0.01
 }
-EPOCHS = 150
+EPOCHS = 5
 
 # Instantiniate seeds
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 
-# Setup device
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Varaibles
 train_dir = "../covid-dataset/train/"
 test_dir = "../covid-dataset/test/"
+gen_dir = "../secondary-covid-dataset/"
 data_transforms = {
                     "BobNet": transforms.Compose([transforms.Resize(256),
                                                   transforms.ToTensor()]),
@@ -50,7 +53,7 @@ data_transforms = {
 }
 # Models
 models = {
-    "BobNet": codnnet.CodnNet().to(device),
+    "BobNet": bobnet.BobNet().to(device),
     "CodnNet": codnnet.CodnNet().to(device),
     "GRUCNN": gru_cnn.GRUCNN().to(device), 
           "EfficientCNN": efficient_cnn.EFFICIENT_CNN().to(device),
@@ -74,6 +77,7 @@ loss_functions = {
                "EfficientCNN": nn.CrossEntropyLoss(),
                "CovidAid": nn.CrossEntropyLoss(), 
                "SqueezeNet": nn.CrossEntropyLoss()
+
 }
 
 
@@ -81,7 +85,7 @@ def training_loop(data_transforms, models):
     for model_name in models:
         print(f"Model Name: {model_name}")
         # DATA
-        train_dataloader, test_dataloader, class_names = data_setup.create_dataloaders(train_dir, test_dir, data_transforms[model_name], BATCH_SIZE, NUM_WORKERS)
+        train_dataloader, test_dataloader, _ , class_names = data_setup.create_dataloaders(train_dir, test_dir, gen_dir, data_transforms[model_name], BATCH_SIZE, NUM_WORKERS)
 
         # Loss Function and Optimizer
         loss_fn = loss_functions[model_name]
@@ -140,6 +144,42 @@ def plot(model_name, model_results):
     ax.legend()
     fig.suptitle(model_name)
     fig.savefig(f"metric_{model_name}")
+
     
+def generalise(models):
+    for model_name in models:
+        print(f"Model Name: {model_name}")
+        model = models[model_name]
+        model.load_state_dict(torch.load(f'/users/adbr117/Covid-Classification/Covid-Classificaton/models/{model_name}.pt'))
+        model.eval()
+        
+        _, _, gen_dataloader, _ = data_setup.create_dataloaders(train_dir, test_dir, gen_dir, data_transforms[model_name], BATCH_SIZE, NUM_WORKERS)
+        
+        loss_fn = loss_functions[model_name]
+        optimizer = optimizers[model_name]
+        
+        for epoch in range(EPOCHS):
+            gen_loss, gen_acc = 0, 0 
+            with torch.inference_mode():
+                for batch, (X, y) in enumerate(gen_dataloader):
+                    X, y = X.to(device), y.to(device)
+
+                    # forward
+                    y_pred = model(X)
+
+                    # loss
+                    loss = loss_fn(y_pred, y)
+                    gen_loss += loss.item()
+
+                    # accuracy across batch
+                    gen_pred_label = torch.argmax(y_pred,dim=1)
+                    gen_acc += accuracy_fn(gen_pred_label, y)
+
+            # get average loss and acc per batch
+            gen_loss = gen_loss / len(gen_dataloader)
+            gen_acc = gen_acc / len(gen_dataloader)
+                
+            print(f"Epoch {epoch} | Gen Loss: {gen_loss:.4f} | Gen Accuracy: {gen_acc:.2f}")
         
 training_loop(data_transforms, models)
+generalise(models)

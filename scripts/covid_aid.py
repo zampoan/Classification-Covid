@@ -123,5 +123,5 @@ class CovidAidModel(nn.Module):
         x = self.covid_aid_7(x)
         x = self.flatten(x)
         x = self.linear(x) # [32,3]
-        x = self.softmax(x)
+        # x = self.softmax(x)
         return x

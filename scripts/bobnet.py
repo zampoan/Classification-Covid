@@ -2,7 +2,7 @@
 Takess input of 256 x 256
 """
 
-import torch.nn
+import torch.nn as nn
 import torch
 
 class BobNet(nn.Module):

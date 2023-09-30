@@ -1,4 +1,5 @@
 """
+Paper: https://www.sciencedirect.com/science/article/pii/S1568494622007050#fig3
 Efficient_CNN: https://www.hindawi.com/journals/complexity/2021/6621607/fig4/
 
 """
@@ -61,7 +62,7 @@ class EFFICIENT_CNN(nn.Module):
         )
         self.dense_3 = nn.Sequential(
             nn.Linear(256, 3),
-            nn.Softmax()
+            # nn.Softmax()
         )
 
     def forward(self, x):

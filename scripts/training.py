@@ -36,7 +36,6 @@ def train_step(model, dataloader, loss_fn, optimizer, device):
 
 def test_step(model, dataloader, loss_fn, device):
     model.eval()
-
     test_loss, test_acc = 0, 0 
     with torch.inference_mode():
         for batch, (X, y) in enumerate(dataloader):
@@ -52,25 +51,35 @@ def test_step(model, dataloader, loss_fn, device):
             # accuracy across batch
             test_pred_label = torch.argmax(y_pred,dim=1)
             test_acc += accuracy_fn(test_pred_label, y)
-
-
+            
     # get average loss and acc per batch
     test_loss = test_loss / len(dataloader)
     test_acc = test_acc / len(dataloader)
-    return test_loss, test_acc
+    f1 = torchmetrics.F1Score(num_classes=3).to(device)
+    f1_score = f1(y_pred, y)
+    recall = torchmetrics.Recall(average="macro", num_classes=3).to(device)
+    recall_score = recall(y_pred, y)
+    precision = torchmetrics.Precision(average="macro", num_classes=3).to(device)
+    precision_score = precision(y_pred, y)
+    return test_loss, test_acc, f1_score, recall_score, precision_score, y_pred, y
 
 def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, device):
     # Create empty results dictionary
     results = {"train_loss": [],
       "train_acc": [],
       "test_loss": [],
-      "test_acc": []
+      "test_acc": [],
+      "f1_score": [],
+      "recall": [],
+      "precision": [],
+      "pred": [],
+      "target":[],
     }
 
     # Training loop
     for epoch in range(epochs):
         train_loss, train_acc = train_step(model, train_dataloader, loss_fn, optimizer, device)
-        test_loss, test_acc = test_step(model, test_dataloader, loss_fn, device)
+        test_loss, test_acc, f1_score, recall_score, precision_score, y_pred, y = test_step(model, test_dataloader, loss_fn, device)
 
         print(f"Epoch {epoch} | Train Loss: {train_loss:.4f} | Train Accuracy: {train_acc:.2f} | Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc:.2f}")
 
@@ -78,5 +87,10 @@ def train(model, train_dataloader, test_dataloader, optimizer, loss_fn, epochs, 
         results["train_acc"].append(train_acc)
         results["test_loss"].append(test_loss)
         results["test_acc"].append(test_acc)
+        results["f1_score"].append(f1_score)
+        results["recall"].append(recall_score)
+        results["precision"].append(precision_score)
 
+              
+            
     return results
